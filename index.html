@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>德州扑克胜率计算器</title>
+<meta name="description" content="基于 Monte Carlo 模拟的德州扑克胜率计算器，开源免费，无需安装">
+<style>
+/* ============================
+   CSS Reset & 基础
+   ============================ */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { font-size: 16px; -webkit-text-size-adjust: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans SC', sans-serif;
+  background: #f0f2f5;
+  color: #333;
+  line-height: 1.5;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ============================
+   布局容器
+   ============================ */
+.app {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 0 0 40px;
+}
+
+/* ============================
+   顶部
+   ============================ */
+.header {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  padding: 28px 20px 22px;
+  text-align: center;
+  color: #fff;
+}
+.header-title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+.header-sub {
+  font-size: 12px;
+  color: rgba(255,255,255,0.55);
+  margin-top: 4px;
+}
+
+/* ============================
+   区块
+   ============================ */
+.section {
+  background: #fff;
+  border-radius: 14px;
+  padding: 18px 18px 16px;
+  margin: 12px 14px;
+  box-shadow: 0 1px 8px rgba(0,0,0,0.04);
+}
+.section-head {
+  display: flex;
+  align-items: baseline;
+  margin-bottom: 14px;
+}
+.section-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+}
+.section-hint {
+  font-size: 11px;
+  color: #bbb;
+  margin-left: 8px;
+}
+
+/* ============================
+   卡牌槽位
+   ============================ */
+.cards-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+.card-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.card-slot-lg { width: 68px; height: 96px; }
+.card-slot-md { width: 56px; height: 78px; }
+.card-slot.empty {
+  border: 2px dashed #d0d0d0;
+  background: #fafbfc;
+}
+.card-slot.empty:hover { background: #f0f0f5; border-color: #aaa; }
+.card-slot.filled {
+  border: 2px solid #e0e0e0;
+  background: #fff;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+}
+.card-slot.filled:hover { transform: scale(0.95); }
+.slot-gap { margin-left: 16px !important; }
+
+.card-add { font-size: 28px; color: #ccc; font-weight: 300; line-height: 1; }
+.card-add-sm { font-size: 24px; }
+
+.card-suit { font-size: 18px; line-height: 1.3; }
+.card-rank { font-size: 22px; font-weight: 700; line-height: 1.2; }
+.card-slot-md .card-suit { font-size: 15px; }
+.card-slot-md .card-rank { font-size: 18px; }
+.c-red { color: #d63031; }
+.c-black { color: #2d3436; }
+
+/* 槽位标签 */
+.slot-labels {
+  display: flex;
+  justify-content: center;
+  margin-top: 8px;
+  font-size: 10px;
+  color: #bbb;
+}
+.slot-label-flop { width: 184px; text-align: center; }
+.slot-label-turn { width: 72px; text-align: center; margin-left: 8px; }
+.slot-label-river { width: 72px; text-align: center; }
+
+/* ============================
+   当前牌型
+   ============================ */
+.hand-type-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 14px 0;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #fff9e6, #fff3cc);
+  border-radius: 10px;
+  border: 1px solid #ffe58f;
+  font-size: 13px;
+}
+.hand-type-bar.hidden { display: none; }
+.hand-type-label { color: #8c6e00; }
+.hand-type-value { font-weight: 700; color: #d48806; margin-left: 4px; }
+
+/* ============================
+   对手数量
+   ============================ */
+.opponent-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+}
+.stepper { display: flex; align-items: center; gap: 4px; }
+.stepper-btn {
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; color: #333;
+  background: #f5f5f5; border-radius: 50%;
+  cursor: pointer; user-select: none; border: none;
+  transition: background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.stepper-btn:hover { background: #e8e8e8; }
+.stepper-btn.disabled { color: #ccc; background: #fafafa; cursor: default; }
+.stepper-value {
+  font-size: 20px; font-weight: 700;
+  color: #1a1a2e; width: 44px; text-align: center;
+}
+
+/* ============================
+   操作按钮
+   ============================ */
+.actions {
+  display: flex;
+  margin: 16px 14px 0;
+  gap: 10px;
+}
+.btn-calc {
+  flex: 1;
+  height: 48px;
+  display: flex; align-items: center; justify-content: center;
+  background: #1677ff; color: #fff;
+  font-size: 16px; font-weight: 600;
+  border-radius: 24px; border: none;
+  cursor: pointer; letter-spacing: 1px;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s;
+}
+.btn-calc:hover { background: #4096ff; }
+.btn-calc:active { background: #0e5fcc; }
+.btn-calc.loading { background: #91bfff; cursor: default; }
+
+.btn-reset {
+  width: 80px; height: 48px;
+  display: flex; align-items: center; justify-content: center;
+  background: #fff; color: #666;
+  font-size: 14px;
+  border-radius: 24px;
+  border: 1px solid #e0e0e0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-reset:hover { background: #f5f5f5; }
+
+/* 模拟精度 */
+.sim-switch {
+  display: flex; justify-content: center; align-items: center;
+  margin-top: 10px; gap: 8px; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.sim-label { font-size: 12px; color: #999; }
+.sim-tap { font-size: 12px; color: #1677ff; }
+
+/* ============================
+   结果面板
+   ============================ */
+.result-panel {
+  margin: 16px 14px 0;
+  background: #fff;
+  border-radius: 14px;
+  padding: 24px 20px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+}
+.result-panel.hidden { display: none; }
+
+.equity-block {
+  display: flex; flex-direction: column; align-items: center;
+  margin-bottom: 24px;
+}
+.equity-ring {
+  width: 120px; height: 120px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 8px;
+}
+.equity-good {
+  background: radial-gradient(circle, #f0fff0 0%, #d4f5d4 60%, rgba(82,196,26,0.13) 100%);
+  border: 4px solid #52c41a;
+}
+.equity-mid {
+  background: radial-gradient(circle, #fffef0 0%, #fff3cc 60%, rgba(250,173,20,0.13) 100%);
+  border: 4px solid #faad14;
+}
+.equity-bad {
+  background: radial-gradient(circle, #fff0f0 0%, #ffd6d6 60%, rgba(255,77,79,0.13) 100%);
+  border: 4px solid #ff4d4f;
+}
+.equity-num { font-size: 36px; font-weight: 800; }
+.equity-pct { font-size: 16px; font-weight: 600; margin-left: 1px; }
+.equity-good .equity-num { color: #389e0d; }
+.equity-good .equity-pct { color: #52c41a; }
+.equity-mid .equity-num { color: #d48806; }
+.equity-mid .equity-pct { color: #faad14; }
+.equity-bad .equity-num { color: #cf1322; }
+.equity-bad .equity-pct { color: #ff4d4f; }
+
+.equity-label { font-size: 14px; font-weight: 600; color: #333; }
+.equity-desc { font-size: 11px; color: #aaa; margin-top: 1px; }
+
+/* 详细数据条 */
+.detail-grid { margin-top: 4px; }
+.detail-item { margin-bottom: 10px; }
+.detail-item:last-child { margin-bottom: 0; }
+.detail-bar-wrap {
+  height: 12px; background: #f5f5f5;
+  border-radius: 6px; overflow: hidden;
+}
+.detail-bar {
+  height: 100%; border-radius: 6px;
+  min-width: 2px; transition: width 0.5s ease;
+}
+.bar-win { background: linear-gradient(90deg, #52c41a, #73d13d); }
+.bar-tie { background: linear-gradient(90deg, #faad14, #ffc53d); }
+.bar-loss { background: linear-gradient(90deg, #ff4d4f, #ff7875); }
+
+.detail-info { display: flex; justify-content: space-between; margin-top: 2px; }
+.detail-label { font-size: 12px; color: #999; }
+.detail-val { font-size: 13px; font-weight: 600; }
+.val-win { color: #52c41a; }
+.val-tie { color: #faad14; }
+.val-loss { color: #ff4d4f; }
+
+.result-footer { margin-top: 14px; text-align: center; }
+.result-meta { font-size: 11px; color: #bbb; }
+
+/* ============================
+   底部说明
+   ============================ */
+.footer-note {
+  text-align: center; padding: 22px 24px 10px;
+  font-size: 11px; color: #c0c0c0; line-height: 1.8;
+}
+.footer-note a { color: #1677ff; text-decoration: none; }
+.footer-note a:hover { text-decoration: underline; }
+
+/* ============================
+   选牌面板
+   ============================ */
+.picker-overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 100;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.25s;
+}
+.picker-overlay.show { opacity: 1; pointer-events: auto; }
+
+.picker-panel {
+  position: fixed; left: 50%; bottom: 0;
+  width: 100%; max-width: 480px;
+  transform: translate(-50%, 100%);
+  background: #fff;
+  border-radius: 18px 18px 0 0;
+  z-index: 101;
+  transition: transform 0.3s ease;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.picker-panel.show { transform: translate(-50%, 0); }
+
+.picker-head {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 16px 20px 10px;
+  border-bottom: 1px solid #f0f0f0;
+}
+.picker-title { font-size: 16px; font-weight: 600; color: #333; }
+.picker-close {
+  font-size: 22px; color: #999; cursor: pointer; padding: 4px 8px;
+  -webkit-tap-highlight-color: transparent;
+}
+.picker-close:hover { color: #333; }
+
+.picker-body { padding: 14px 12px 20px; }
+.picker-row {
+  display: flex; align-items: center; margin-bottom: 8px;
+}
+.picker-row:last-child { margin-bottom: 0; }
+.picker-suit-icon {
+  width: 28px; font-size: 20px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.suit-red { color: #d63031; }
+.suit-black { color: #2d3436; }
+
+.picker-cards { display: flex; flex: 1; gap: 3px; }
+.picker-card {
+  flex: 1; height: 34px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 600;
+  border-radius: 6px; background: #f8f9fa;
+  cursor: pointer; user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.1s;
+}
+.picker-card:hover { background: #e8eaed; }
+.picker-card:active { transform: scale(0.92); }
+.picker-red { color: #d63031; }
+.picker-black { color: #2d3436; }
+.picker-card.used {
+  background: #e8e8e8 !important;
+  color: #ccc !important;
+  text-decoration: line-through;
+  cursor: default;
+}
+
+/* ============================
+   响应式
+   ============================ */
+@media (min-width: 481px) {
+  .header { border-radius: 0 0 18px 18px; }
+}
+@media (max-width: 360px) {
+  .card-slot-lg { width: 60px; height: 86px; }
+  .card-slot-md { width: 48px; height: 68px; }
+  .card-rank { font-size: 20px; }
+  .card-suit { font-size: 16px; }
+  .card-slot-md .card-rank { font-size: 16px; }
+  .card-slot-md .card-suit { font-size: 13px; }
+}
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+  <!-- 顶部 -->
+  <div class="header">
+    <div class="header-title">德州扑克胜率计算器</div>
+    <div class="header-sub">Monte Carlo 模拟 · 开源免费</div>
+  </div>
+
+  <!-- 手牌 -->
+  <div class="section">
+    <div class="section-head">
+      <span class="section-title">你的手牌</span>
+      <span class="section-hint">点击选牌，再次点击移除</span>
+    </div>
+    <div class="cards-row" id="holeRow"></div>
+  </div>
+
+  <!-- 公共牌 -->
+  <div class="section">
+    <div class="section-head">
+      <span class="section-title">公共牌</span>
+      <span class="section-hint">可选 · 翻牌/转牌/河牌</span>
+    </div>
+    <div class="cards-row" id="communityRow"></div>
+    <div class="slot-labels">
+      <span class="slot-label-flop">翻牌</span>
+      <span class="slot-label-turn">转牌</span>
+      <span class="slot-label-river">河牌</span>
+    </div>
+  </div>
+
+  <!-- 当前牌型 -->
+  <div class="hand-type-bar hidden" id="handTypeBar">
+    <span>🃏</span>&nbsp;
+    <span class="hand-type-label">当前最佳牌型：</span>
+    <span class="hand-type-value" id="handTypeValue"></span>
+  </div>
+
+  <!-- 对手数量 -->
+  <div class="section opponent-section">
+    <span class="section-title">对手数量</span>
+    <div class="stepper">
+      <button class="stepper-btn" id="btnDecOpp">−</button>
+      <span class="stepper-value" id="oppCount">2</span>
+      <button class="stepper-btn" id="btnIncOpp">+</button>
+    </div>
+  </div>
+
+  <!-- 按钮 -->
+  <div class="actions">
+    <button class="btn-calc" id="btnCalc">计算胜率</button>
+    <button class="btn-reset" id="btnReset">重置</button>
+  </div>
+  <div class="sim-switch" id="simSwitch">
+    <span class="sim-label" id="simLabel">模拟精度：1万次</span>
+    <span class="sim-tap">点击切换</span>
+  </div>
+
+  <!-- 结果 -->
+  <div class="result-panel hidden" id="resultPanel">
+    <div class="equity-block">
+      <div class="equity-ring" id="equityRing">
+        <span class="equity-num" id="equityNum"></span>
+        <span class="equity-pct">%</span>
+      </div>
+      <span class="equity-label">综合胜率</span>
+      <span class="equity-desc">胜利 + 平局×50%</span>
+    </div>
+    <div class="detail-grid">
+      <div class="detail-item">
+        <div class="detail-bar-wrap"><div class="detail-bar bar-win" id="barWin"></div></div>
+        <div class="detail-info"><span class="detail-label">胜</span><span class="detail-val val-win" id="valWin"></span></div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-bar-wrap"><div class="detail-bar bar-tie" id="barTie"></div></div>
+        <div class="detail-info"><span class="detail-label">平</span><span class="detail-val val-tie" id="valTie"></span></div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-bar-wrap"><div class="detail-bar bar-loss" id="barLoss"></div></div>
+        <div class="detail-info"><span class="detail-label">负</span><span class="detail-val val-loss" id="valLoss"></span></div>
+      </div>
+    </div>
+    <div class="result-footer">
+      <span class="result-meta" id="resultMeta"></span>
+    </div>
+  </div>
+
+  <!-- 底部 -->
+  <div class="footer-note">
+    基于 Monte Carlo 随机模拟算法<br>
+    对手手牌随机发放，结果为统计概率<br>
+    <a href="https://github.com" target="_blank" rel="noopener">GitHub 开源</a> · MIT License
+  </div>
+</div>
+
+<!-- 选牌面板 -->
+<div class="picker-overlay" id="pickerOverlay"></div>
+<div class="picker-panel" id="pickerPanel">
+  <div class="picker-head">
+    <span class="picker-title">选择一张牌</span>
+    <span class="picker-close" id="pickerClose">✕</span>
+  </div>
+  <div class="picker-body" id="pickerBody"></div>
+</div>
+
+<script>
+/* ======================================================================
+   德州扑克胜率计算引擎
+   ====================================================================== */
+(function () {
+  'use strict';
+
+  // --------------- 牌编码 ---------------
+  var SUITS = ['\u2660', '\u2665', '\u2666', '\u2663'];      // ♠♥♦♣
+  var RANKS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+  var HAND_NAMES = ['高牌','一对','两对','三条','顺子','同花','葫芦','四条','同花顺'];
+
+  // 15 的各次幂
+  var P5=759375, P4=50625, P3=3375, P2=225, P1=15;
+
+  // C(7,5)=21 种组合
+  var C75 = [
+    [0,1,2,3,4],[0,1,2,3,5],[0,1,2,3,6],[0,1,2,4,5],[0,1,2,4,6],
+    [0,1,2,5,6],[0,1,3,4,5],[0,1,3,4,6],[0,1,3,5,6],[0,1,4,5,6],
+    [0,2,3,4,5],[0,2,3,4,6],[0,2,3,5,6],[0,2,4,5,6],[0,3,4,5,6],
+    [1,2,3,4,5],[1,2,3,4,6],[1,2,3,5,6],[1,2,4,5,6],[1,3,4,5,6],
+    [2,3,4,5,6]
+  ];
+
+  function hs(t,a,b,c,d,e){return t*P5+(a||0)*P4+(b||0)*P3+(c||0)*P2+(d||0)*P1+(e||0);}
+
+  function eval5(cards) {
+    var ranks = [
+      (cards[0]>>2)+2, (cards[1]>>2)+2, (cards[2]>>2)+2,
+      (cards[3]>>2)+2, (cards[4]>>2)+2
+    ];
+    ranks.sort(function(a,b){return b-a;});
+
+    var flush = (cards[0]&3)===(cards[1]&3)&&(cards[1]&3)===(cards[2]&3)&&
+                (cards[2]&3)===(cards[3]&3)&&(cards[3]&3)===(cards[4]&3);
+
+    var straight=false, sHigh=0;
+    var allDiff=ranks[0]!==ranks[1]&&ranks[1]!==ranks[2]&&
+                ranks[2]!==ranks[3]&&ranks[3]!==ranks[4];
+    if(allDiff){
+      if(ranks[0]-ranks[4]===4){straight=true;sHigh=ranks[0];}
+      if(ranks[0]===14&&ranks[1]===5&&ranks[2]===4&&ranks[3]===3&&ranks[4]===2){straight=true;sHigh=5;}
+    }
+
+    var cnt={};
+    for(var i=0;i<5;i++) cnt[ranks[i]]=(cnt[ranks[i]]||0)+1;
+    var g=[];
+    for(var k in cnt) g.push([cnt[k],+k]);
+    g.sort(function(a,b){return b[0]-a[0]||(b[1]-a[1]);});
+
+    if(flush&&straight) return hs(8,sHigh);
+    if(g[0][0]===4) return hs(7,g[0][1],g[1][1]);
+    if(g[0][0]===3&&g.length===2) return hs(6,g[0][1],g[1][1]);
+    if(flush) return hs(5,ranks[0],ranks[1],ranks[2],ranks[3],ranks[4]);
+    if(straight) return hs(4,sHigh);
+    if(g[0][0]===3) return hs(3,g[0][1],g[1][1],g[2][1]);
+    if(g[0][0]===2&&g[1][0]===2) return hs(2,g[0][1],g[1][1],g[2][1]);
+    if(g[0][0]===2) return hs(1,g[0][1],g[1][1],g[2][1],g[3][1]);
+    return hs(0,ranks[0],ranks[1],ranks[2],ranks[3],ranks[4]);
+  }
+
+  function best7(c7) {
+    var best=-1, h=[0,0,0,0,0];
+    for(var i=0;i<21;i++){
+      var cb=C75[i];
+      h[0]=c7[cb[0]];h[1]=c7[cb[1]];h[2]=c7[cb[2]];h[3]=c7[cb[3]];h[4]=c7[cb[4]];
+      var s=eval5(h);
+      if(s>best)best=s;
+    }
+    return best;
+  }
+
+  function bestN(cards) {
+    var n=cards.length;
+    if(n<5)return -1;
+    if(n===5)return eval5(cards);
+    if(n===7)return best7(cards);
+    var best=-1, h=[0,0,0,0,0];
+    for(var a=0;a<n-4;a++)
+      for(var b=a+1;b<n-3;b++)
+        for(var c=b+1;c<n-2;c++)
+          for(var d=c+1;d<n-1;d++)
+            for(var e=d+1;e<n;e++){
+              h[0]=cards[a];h[1]=cards[b];h[2]=cards[c];h[3]=cards[d];h[4]=cards[e];
+              var s=eval5(h);if(s>best)best=s;
+            }
+    return best;
+  }
+
+  function handTypeName(score) {
+    if(score<0)return '';
+    var t=Math.floor(score/P5);
+    if(t===8){var v=Math.floor((score-t*P5)/P4);return v===14?'皇家同花顺':'同花顺';}
+    return HAND_NAMES[t]||'';
+  }
+
+  function monteCarlo(hole, community, opp, sims) {
+    var known={};
+    for(var i=0;i<hole.length;i++) known[hole[i]]=1;
+    for(var i=0;i<community.length;i++) known[community[i]]=1;
+    var deck=[];
+    for(var i=0;i<52;i++) if(!known[i]) deck.push(i);
+    var dLen=deck.length, cNeed=5-community.length, total=cNeed+opp*2;
+    var wins=0,ties=0,losses=0;
+    var my=[hole[0],hole[1],0,0,0,0,0], op=[0,0,0,0,0,0,0];
+    for(var i=0;i<community.length;i++) my[2+i]=community[i];
+
+    for(var sim=0;sim<sims;sim++){
+      for(var i=0;i<total;i++){
+        var j=i+Math.floor(Math.random()*(dLen-i));
+        var tmp=deck[i];deck[i]=deck[j];deck[j]=tmp;
+      }
+      var idx=0;
+      for(var i=0;i<cNeed;i++) my[2+community.length+i]=deck[idx++];
+      var myS=best7(my);
+      var bestOpp=-1;
+      for(var o=0;o<opp;o++){
+        op[0]=deck[idx++];op[1]=deck[idx++];
+        op[2]=my[2];op[3]=my[3];op[4]=my[4];op[5]=my[5];op[6]=my[6];
+        var os=best7(op);if(os>bestOpp)bestOpp=os;
+      }
+      if(myS>bestOpp)wins++;else if(myS===bestOpp)ties++;else losses++;
+    }
+
+    var eq=(wins+ties*0.5)/sims*100;
+    return {
+      wins:wins, ties:ties, losses:losses, total:sims,
+      winRate:(wins/sims*100).toFixed(1),
+      tieRate:(ties/sims*100).toFixed(1),
+      lossRate:(losses/sims*100).toFixed(1),
+      equity:eq.toFixed(1),
+      eqClass:eq>=55?'equity-good':(eq>=45?'equity-mid':'equity-bad')
+    };
+  }
+
+  // --------------- 应用状态 ---------------
+  var state = {
+    hole: [-1, -1],
+    community: [-1, -1, -1, -1, -1],
+    opp: 2,
+    used: {},
+    simCount: 10000,
+    simCounts: [5000, 10000, 20000, 50000],
+    simIdx: 1,
+    calculating: false,
+    pickerTarget: null  // {type:'hole'|'community', index:N}
+  };
+
+  // --------------- DOM ---------------
+  var $ = function(id){return document.getElementById(id);};
+  var holeRow = $('holeRow');
+  var communityRow = $('communityRow');
+  var handTypeBar = $('handTypeBar');
+  var handTypeValue = $('handTypeValue');
+  var oppCountEl = $('oppCount');
+  var resultPanel = $('resultPanel');
+  var pickerOverlay = $('pickerOverlay');
+  var pickerPanel = $('pickerPanel');
+  var pickerBody = $('pickerBody');
+
+  // --------------- 渲染函数 ---------------
+  function cardHTML(idx, size) {
+    if (idx < 0) {
+      return '<span class="card-add' + (size === 'md' ? ' card-add-sm' : '') + '">+</span>';
+    }
+    var s = idx & 3, r = idx >> 2;
+    var cls = (s === 1 || s === 2) ? 'c-red' : 'c-black';
+    return '<span class="card-suit ' + cls + '">' + SUITS[s] + '</span>' +
+           '<span class="card-rank ' + cls + '">' + RANKS[r] + '</span>';
+  }
+
+  function renderHole() {
+    var html = '';
+    for (var i = 0; i < 2; i++) {
+      var filled = state.hole[i] >= 0 ? 'filled' : 'empty';
+      html += '<div class="card-slot card-slot-lg ' + filled + '" data-type="hole" data-idx="' + i + '">' +
+              cardHTML(state.hole[i], 'lg') + '</div>';
+    }
+    holeRow.innerHTML = html;
+  }
+
+  function renderCommunity() {
+    var html = '';
+    for (var i = 0; i < 5; i++) {
+      var filled = state.community[i] >= 0 ? 'filled' : 'empty';
+      var gap = i === 3 ? ' slot-gap' : '';
+      html += '<div class="card-slot card-slot-md ' + filled + gap + '" data-type="community" data-idx="' + i + '">' +
+              cardHTML(state.community[i], 'md') + '</div>';
+    }
+    communityRow.innerHTML = html;
+  }
+
+  function renderHandType() {
+    var h = [], c = [];
+    for (var i = 0; i < 2; i++) if (state.hole[i] >= 0) h.push(state.hole[i]);
+    for (var i = 0; i < 5; i++) if (state.community[i] >= 0) c.push(state.community[i]);
+    if (h.length === 2 && c.length >= 3) {
+      var score = bestN(h.concat(c));
+      handTypeValue.textContent = handTypeName(score);
+      handTypeBar.classList.remove('hidden');
+    } else {
+      handTypeBar.classList.add('hidden');
+    }
+  }
+
+  function renderResult(r) {
+    $('equityRing').className = 'equity-ring ' + r.eqClass;
+    $('equityNum').textContent = r.equity;
+    $('barWin').style.width = r.winRate + '%';
+    $('barTie').style.width = r.tieRate + '%';
+    $('barLoss').style.width = r.lossRate + '%';
+    $('valWin').textContent = r.winRate + '%';
+    $('valTie').textContent = r.tieRate + '%';
+    $('valLoss').textContent = r.lossRate + '%';
+    $('resultMeta').textContent = '模拟 ' + r.total + ' 次 · 耗时 ' + r.duration + 's';
+    resultPanel.classList.remove('hidden');
+  }
+
+  function hideResult() {
+    resultPanel.classList.add('hidden');
+  }
+
+  function renderSimLabel() {
+    var c = state.simCount;
+    $('simLabel').textContent = '模拟精度：' + (c >= 10000 ? (c / 10000) + '万次' : c + '次');
+  }
+
+  function renderOpp() {
+    oppCountEl.textContent = state.opp;
+    $('btnDecOpp').className = 'stepper-btn' + (state.opp <= 1 ? ' disabled' : '');
+    $('btnIncOpp').className = 'stepper-btn' + (state.opp >= 9 ? ' disabled' : '');
+  }
+
+  // --------------- 选牌面板 ---------------
+  function buildPicker() {
+    var html = '';
+    for (var s = 0; s < 4; s++) {
+      var red = (s === 1 || s === 2);
+      html += '<div class="picker-row"><div class="picker-suit-icon ' + (red ? 'suit-red' : 'suit-black') + '">' +
+              SUITS[s] + '</div><div class="picker-cards">';
+      for (var r = 0; r < 13; r++) {
+        var idx = r * 4 + s;
+        var usedCls = state.used[idx] ? ' used' : '';
+        html += '<div class="picker-card ' + (red ? 'picker-red' : 'picker-black') + usedCls +
+                '" data-card="' + idx + '">' + RANKS[r] + '</div>';
+      }
+      html += '</div></div>';
+    }
+    pickerBody.innerHTML = html;
+  }
+
+  function showPicker(type, idx) {
+    state.pickerTarget = {type: type, index: idx};
+    buildPicker();
+    pickerOverlay.classList.add('show');
+    pickerPanel.classList.add('show');
+  }
+
+  function closePicker() {
+    pickerOverlay.classList.remove('show');
+    pickerPanel.classList.remove('show');
+    state.pickerTarget = null;
+  }
+
+  // --------------- 事件绑定 ---------------
+
+  // 手牌和公共牌点击 (事件委托)
+  holeRow.addEventListener('click', function (e) {
+    var slot = e.target.closest('.card-slot');
+    if (!slot) return;
+    var idx = +slot.dataset.idx;
+    if (state.hole[idx] >= 0) {
+      delete state.used[state.hole[idx]];
+      state.hole[idx] = -1;
+      renderHole(); renderHandType(); hideResult();
+    } else {
+      showPicker('hole', idx);
+    }
+  });
+
+  communityRow.addEventListener('click', function (e) {
+    var slot = e.target.closest('.card-slot');
+    if (!slot) return;
+    var idx = +slot.dataset.idx;
+    if (state.community[idx] >= 0) {
+      delete state.used[state.community[idx]];
+      state.community[idx] = -1;
+      renderCommunity(); renderHandType(); hideResult();
+    } else {
+      showPicker('community', idx);
+    }
+  });
+
+  // 选牌
+  pickerBody.addEventListener('click', function (e) {
+    var el = e.target.closest('.picker-card');
+    if (!el || el.classList.contains('used')) return;
+    var card = +el.dataset.card;
+    if (!state.pickerTarget) return;
+    var t = state.pickerTarget;
+    if (t.type === 'hole') state.hole[t.index] = card;
+    else state.community[t.index] = card;
+    state.used[card] = true;
+    closePicker();
+    renderHole(); renderCommunity(); renderHandType(); hideResult();
+  });
+
+  pickerOverlay.addEventListener('click', closePicker);
+  $('pickerClose').addEventListener('click', closePicker);
+
+  // 对手数量
+  $('btnDecOpp').addEventListener('click', function () {
+    if (state.opp > 1) { state.opp--; renderOpp(); hideResult(); }
+  });
+  $('btnIncOpp').addEventListener('click', function () {
+    if (state.opp < 9) { state.opp++; renderOpp(); hideResult(); }
+  });
+
+  // 计算
+  $('btnCalc').addEventListener('click', function () {
+    if (state.calculating) return;
+    var hole = [];
+    for (var i = 0; i < 2; i++) if (state.hole[i] >= 0) hole.push(state.hole[i]);
+    if (hole.length < 2) {
+      alert('请先选择两张手牌');
+      return;
+    }
+    var comm = [];
+    for (var i = 0; i < 5; i++) if (state.community[i] >= 0) comm.push(state.community[i]);
+
+    state.calculating = true;
+    var btn = $('btnCalc');
+    btn.textContent = '计算中...';
+    btn.classList.add('loading');
+    hideResult();
+
+    setTimeout(function () {
+      var t0 = performance.now();
+      var r = monteCarlo(hole, comm, state.opp, state.simCount);
+      r.duration = ((performance.now() - t0) / 1000).toFixed(2);
+      renderResult(r);
+      btn.textContent = '计算胜率';
+      btn.classList.remove('loading');
+      state.calculating = false;
+    }, 30);
+  });
+
+  // 重置
+  $('btnReset').addEventListener('click', function () {
+    state.hole = [-1, -1];
+    state.community = [-1, -1, -1, -1, -1];
+    state.opp = 2;
+    state.used = {};
+    renderHole(); renderCommunity(); renderOpp(); renderHandType(); hideResult();
+  });
+
+  // 模拟精度切换
+  $('simSwitch').addEventListener('click', function () {
+    state.simIdx = (state.simIdx + 1) % state.simCounts.length;
+    state.simCount = state.simCounts[state.simIdx];
+    renderSimLabel(); hideResult();
+  });
+
+  // --------------- 初始化渲染 ---------------
+  renderHole();
+  renderCommunity();
+  renderOpp();
+  renderSimLabel();
+
+})();
+</script>
+</body>
+</html>
