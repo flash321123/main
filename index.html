@@ -3,116 +3,60 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>德州扑克胜率计算器</title>
-<meta name="description" content="基于 Monte Carlo 模拟的德州扑克胜率计算器，开源免费，无需安装">
+<title>德州扑克胜率计算器 · AI 顾问</title>
+<meta name="description" content="基于 Monte Carlo 模拟 + AI 大模型的德州扑克胜率计算器，开源免费">
 <style>
-/* ============================
-   CSS Reset & 基础
-   ============================ */
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 html { font-size: 16px; -webkit-text-size-adjust: 100%; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans SC', sans-serif;
-  background: #f0f2f5;
-  color: #333;
-  line-height: 1.5;
-  min-height: 100vh;
-  -webkit-font-smoothing: antialiased;
+  background: #f0f2f5; color: #333; line-height: 1.5;
+  min-height: 100vh; -webkit-font-smoothing: antialiased;
 }
 
-/* ============================
-   布局容器
-   ============================ */
-.app {
-  max-width: 480px;
-  margin: 0 auto;
-  padding: 0 0 40px;
-}
+.app { max-width: 480px; margin: 0 auto; padding: 0 0 40px; }
 
-/* ============================
-   顶部
-   ============================ */
+/* 顶部 */
 .header {
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-  padding: 28px 20px 22px;
-  text-align: center;
-  color: #fff;
+  padding: 28px 20px 22px; text-align: center; color: #fff;
+  position: relative;
 }
-.header-title {
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: 1px;
+.header-title { font-size: 22px; font-weight: 700; letter-spacing: 1px; }
+.header-sub { font-size: 12px; color: rgba(255,255,255,0.55); margin-top: 4px; }
+.header-gear {
+  position: absolute; right: 18px; top: 50%; transform: translateY(-50%);
+  font-size: 22px; cursor: pointer; opacity: 0.7; transition: opacity 0.15s;
+  -webkit-tap-highlight-color: transparent;
 }
-.header-sub {
-  font-size: 12px;
-  color: rgba(255,255,255,0.55);
-  margin-top: 4px;
-}
+.header-gear:hover { opacity: 1; }
 
-/* ============================
-   区块
-   ============================ */
+/* 区块 */
 .section {
-  background: #fff;
-  border-radius: 14px;
-  padding: 18px 18px 16px;
-  margin: 12px 14px;
+  background: #fff; border-radius: 14px;
+  padding: 18px 18px 16px; margin: 12px 14px;
   box-shadow: 0 1px 8px rgba(0,0,0,0.04);
 }
-.section-head {
-  display: flex;
-  align-items: baseline;
-  margin-bottom: 14px;
-}
-.section-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: #333;
-}
-.section-hint {
-  font-size: 11px;
-  color: #bbb;
-  margin-left: 8px;
-}
+.section-head { display: flex; align-items: baseline; margin-bottom: 14px; }
+.section-title { font-size: 15px; font-weight: 600; color: #333; }
+.section-hint { font-size: 11px; color: #bbb; margin-left: 8px; }
 
-/* ============================
-   卡牌槽位
-   ============================ */
-.cards-row {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 8px;
-}
+/* 卡牌槽位 */
+.cards-row { display: flex; justify-content: center; align-items: center; gap: 8px; }
 .card-slot {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.15s;
-  user-select: none;
-  -webkit-tap-highlight-color: transparent;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  border-radius: 10px; cursor: pointer; transition: all 0.15s;
+  user-select: none; -webkit-tap-highlight-color: transparent;
 }
 .card-slot-lg { width: 68px; height: 96px; }
 .card-slot-md { width: 56px; height: 78px; }
-.card-slot.empty {
-  border: 2px dashed #d0d0d0;
-  background: #fafbfc;
-}
+.card-slot.empty { border: 2px dashed #d0d0d0; background: #fafbfc; }
 .card-slot.empty:hover { background: #f0f0f5; border-color: #aaa; }
-.card-slot.filled {
-  border: 2px solid #e0e0e0;
-  background: #fff;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-}
+.card-slot.filled { border: 2px solid #e0e0e0; background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
 .card-slot.filled:hover { transform: scale(0.95); }
 .slot-gap { margin-left: 16px !important; }
-
 .card-add { font-size: 28px; color: #ccc; font-weight: 300; line-height: 1; }
 .card-add-sm { font-size: 24px; }
-
 .card-suit { font-size: 18px; line-height: 1.3; }
 .card-rank { font-size: 22px; font-weight: 700; line-height: 1.2; }
 .card-slot-md .card-suit { font-size: 15px; }
@@ -120,283 +64,263 @@ body {
 .c-red { color: #d63031; }
 .c-black { color: #2d3436; }
 
-/* 槽位标签 */
-.slot-labels {
-  display: flex;
-  justify-content: center;
-  margin-top: 8px;
-  font-size: 10px;
-  color: #bbb;
-}
+.slot-labels { display: flex; justify-content: center; margin-top: 8px; font-size: 10px; color: #bbb; }
 .slot-label-flop { width: 184px; text-align: center; }
 .slot-label-turn { width: 72px; text-align: center; margin-left: 8px; }
 .slot-label-river { width: 72px; text-align: center; }
 
-/* ============================
-   当前牌型
-   ============================ */
+/* 当前牌型 */
 .hand-type-bar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 14px 0;
-  padding: 10px 16px;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 14px; padding: 10px 16px;
   background: linear-gradient(135deg, #fff9e6, #fff3cc);
-  border-radius: 10px;
-  border: 1px solid #ffe58f;
-  font-size: 13px;
+  border-radius: 10px; border: 1px solid #ffe58f; font-size: 13px;
 }
 .hand-type-bar.hidden { display: none; }
 .hand-type-label { color: #8c6e00; }
 .hand-type-value { font-weight: 700; color: #d48806; margin-left: 4px; }
 
-/* ============================
-   对手数量
-   ============================ */
-.opponent-section {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 18px;
-}
+/* 对手数量 */
+.opponent-section { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; }
 .stepper { display: flex; align-items: center; gap: 4px; }
 .stepper-btn {
-  width: 36px; height: 36px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 20px; color: #333;
-  background: #f5f5f5; border-radius: 50%;
-  cursor: pointer; user-select: none; border: none;
-  transition: background 0.15s;
-  -webkit-tap-highlight-color: transparent;
+  width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+  font-size: 20px; color: #333; background: #f5f5f5; border-radius: 50%;
+  cursor: pointer; user-select: none; border: none; transition: background 0.15s;
 }
 .stepper-btn:hover { background: #e8e8e8; }
 .stepper-btn.disabled { color: #ccc; background: #fafafa; cursor: default; }
-.stepper-value {
-  font-size: 20px; font-weight: 700;
-  color: #1a1a2e; width: 44px; text-align: center;
-}
+.stepper-value { font-size: 20px; font-weight: 700; color: #1a1a2e; width: 44px; text-align: center; }
 
-/* ============================
-   操作按钮
-   ============================ */
-.actions {
-  display: flex;
-  margin: 16px 14px 0;
-  gap: 10px;
-}
+/* 按钮 */
+.actions { display: flex; margin: 16px 14px 0; gap: 10px; }
 .btn-calc {
-  flex: 1;
-  height: 48px;
-  display: flex; align-items: center; justify-content: center;
-  background: #1677ff; color: #fff;
-  font-size: 16px; font-weight: 600;
-  border-radius: 24px; border: none;
-  cursor: pointer; letter-spacing: 1px;
-  -webkit-tap-highlight-color: transparent;
+  flex: 1; height: 48px; display: flex; align-items: center; justify-content: center;
+  background: #1677ff; color: #fff; font-size: 16px; font-weight: 600;
+  border-radius: 24px; border: none; cursor: pointer; letter-spacing: 1px;
   transition: background 0.15s;
 }
 .btn-calc:hover { background: #4096ff; }
 .btn-calc:active { background: #0e5fcc; }
 .btn-calc.loading { background: #91bfff; cursor: default; }
-
 .btn-reset {
-  width: 80px; height: 48px;
-  display: flex; align-items: center; justify-content: center;
-  background: #fff; color: #666;
-  font-size: 14px;
-  border-radius: 24px;
-  border: 1px solid #e0e0e0;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
+  width: 80px; height: 48px; display: flex; align-items: center; justify-content: center;
+  background: #fff; color: #666; font-size: 14px; border-radius: 24px;
+  border: 1px solid #e0e0e0; cursor: pointer;
 }
 .btn-reset:hover { background: #f5f5f5; }
 
-/* 模拟精度 */
 .sim-switch {
   display: flex; justify-content: center; align-items: center;
   margin-top: 10px; gap: 8px; cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
 }
 .sim-label { font-size: 12px; color: #999; }
 .sim-tap { font-size: 12px; color: #1677ff; }
 
-/* ============================
-   结果面板
-   ============================ */
+/* 结果面板 */
 .result-panel {
-  margin: 16px 14px 0;
-  background: #fff;
-  border-radius: 14px;
-  padding: 24px 20px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  margin: 16px 14px 0; background: #fff; border-radius: 14px;
+  padding: 24px 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.06);
 }
 .result-panel.hidden { display: none; }
-
-.equity-block {
-  display: flex; flex-direction: column; align-items: center;
-  margin-bottom: 24px;
-}
+.equity-block { display: flex; flex-direction: column; align-items: center; margin-bottom: 24px; }
 .equity-ring {
   width: 120px; height: 120px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  margin-bottom: 8px;
+  display: flex; align-items: center; justify-content: center; margin-bottom: 8px;
 }
-.equity-good {
-  background: radial-gradient(circle, #f0fff0 0%, #d4f5d4 60%, rgba(82,196,26,0.13) 100%);
-  border: 4px solid #52c41a;
-}
-.equity-mid {
-  background: radial-gradient(circle, #fffef0 0%, #fff3cc 60%, rgba(250,173,20,0.13) 100%);
-  border: 4px solid #faad14;
-}
-.equity-bad {
-  background: radial-gradient(circle, #fff0f0 0%, #ffd6d6 60%, rgba(255,77,79,0.13) 100%);
-  border: 4px solid #ff4d4f;
-}
+.equity-good { background: radial-gradient(circle,#f0fff0 0%,#d4f5d4 60%,rgba(82,196,26,.13) 100%); border: 4px solid #52c41a; }
+.equity-mid { background: radial-gradient(circle,#fffef0 0%,#fff3cc 60%,rgba(250,173,20,.13) 100%); border: 4px solid #faad14; }
+.equity-bad { background: radial-gradient(circle,#fff0f0 0%,#ffd6d6 60%,rgba(255,77,79,.13) 100%); border: 4px solid #ff4d4f; }
 .equity-num { font-size: 36px; font-weight: 800; }
 .equity-pct { font-size: 16px; font-weight: 600; margin-left: 1px; }
-.equity-good .equity-num { color: #389e0d; }
-.equity-good .equity-pct { color: #52c41a; }
-.equity-mid .equity-num { color: #d48806; }
-.equity-mid .equity-pct { color: #faad14; }
-.equity-bad .equity-num { color: #cf1322; }
-.equity-bad .equity-pct { color: #ff4d4f; }
-
+.equity-good .equity-num { color: #389e0d; } .equity-good .equity-pct { color: #52c41a; }
+.equity-mid .equity-num { color: #d48806; } .equity-mid .equity-pct { color: #faad14; }
+.equity-bad .equity-num { color: #cf1322; } .equity-bad .equity-pct { color: #ff4d4f; }
 .equity-label { font-size: 14px; font-weight: 600; color: #333; }
 .equity-desc { font-size: 11px; color: #aaa; margin-top: 1px; }
 
-/* 详细数据条 */
 .detail-grid { margin-top: 4px; }
 .detail-item { margin-bottom: 10px; }
 .detail-item:last-child { margin-bottom: 0; }
-.detail-bar-wrap {
-  height: 12px; background: #f5f5f5;
-  border-radius: 6px; overflow: hidden;
-}
-.detail-bar {
-  height: 100%; border-radius: 6px;
-  min-width: 2px; transition: width 0.5s ease;
-}
-.bar-win { background: linear-gradient(90deg, #52c41a, #73d13d); }
-.bar-tie { background: linear-gradient(90deg, #faad14, #ffc53d); }
-.bar-loss { background: linear-gradient(90deg, #ff4d4f, #ff7875); }
-
+.detail-bar-wrap { height: 12px; background: #f5f5f5; border-radius: 6px; overflow: hidden; }
+.detail-bar { height: 100%; border-radius: 6px; min-width: 2px; transition: width 0.5s ease; }
+.bar-win { background: linear-gradient(90deg,#52c41a,#73d13d); }
+.bar-tie { background: linear-gradient(90deg,#faad14,#ffc53d); }
+.bar-loss { background: linear-gradient(90deg,#ff4d4f,#ff7875); }
 .detail-info { display: flex; justify-content: space-between; margin-top: 2px; }
 .detail-label { font-size: 12px; color: #999; }
 .detail-val { font-size: 13px; font-weight: 600; }
-.val-win { color: #52c41a; }
-.val-tie { color: #faad14; }
-.val-loss { color: #ff4d4f; }
-
+.val-win { color: #52c41a; } .val-tie { color: #faad14; } .val-loss { color: #ff4d4f; }
 .result-footer { margin-top: 14px; text-align: center; }
 .result-meta { font-size: 11px; color: #bbb; }
 
-/* ============================
-   底部说明
-   ============================ */
+/* ==========================
+   AI 顾问面板
+   ========================== */
+.ai-panel {
+  margin: 16px 14px 0; background: #fff; border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06); overflow: hidden;
+}
+.ai-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+}
+.ai-header-left { display: flex; align-items: center; gap: 8px; }
+.ai-icon { font-size: 20px; }
+.ai-title { font-size: 15px; font-weight: 600; }
+.ai-model-tag {
+  font-size: 10px; background: rgba(255,255,255,0.2);
+  padding: 2px 8px; border-radius: 10px;
+}
+.btn-ai {
+  padding: 6px 16px; border-radius: 16px; border: 1.5px solid rgba(255,255,255,0.6);
+  background: transparent; color: #fff; font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: all 0.15s;
+}
+.btn-ai:hover { background: rgba(255,255,255,0.15); }
+.btn-ai.loading { opacity: 0.6; cursor: default; }
+
+.ai-body { padding: 16px 18px; min-height: 60px; }
+.ai-placeholder { color: #bbb; font-size: 13px; text-align: center; padding: 20px 0; }
+.ai-content {
+  font-size: 13.5px; line-height: 1.75; color: #444;
+  white-space: pre-wrap; word-break: break-word;
+}
+.ai-content strong, .ai-content b { color: #333; }
+
+.ai-tag-fold { display: inline-block; background: #fff1f0; color: #cf1322; padding: 1px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+.ai-tag-call { display: inline-block; background: #fffbe6; color: #d48806; padding: 1px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+.ai-tag-raise { display: inline-block; background: #f6ffed; color: #389e0d; padding: 1px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+
+.ai-cursor {
+  display: inline-block; width: 2px; height: 15px;
+  background: #667eea; margin-left: 2px;
+  animation: blink 0.8s infinite; vertical-align: text-bottom;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+.ai-error { color: #ff4d4f; font-size: 13px; }
+.ai-footer { padding: 0 18px 12px; text-align: right; }
+.ai-cost { font-size: 10px; color: #ccc; }
+
+/* ==========================
+   设置模态框
+   ========================== */
+.modal-overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.45); z-index: 200;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity 0.25s;
+}
+.modal-overlay.show { opacity: 1; pointer-events: auto; }
+.modal {
+  background: #fff; border-radius: 16px; width: 90%; max-width: 400px;
+  padding: 24px; box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+  transform: scale(0.9); transition: transform 0.25s;
+}
+.modal-overlay.show .modal { transform: scale(1); }
+.modal-title { font-size: 18px; font-weight: 700; margin-bottom: 20px; color: #1a1a2e; }
+.form-group { margin-bottom: 16px; }
+.form-label { display: block; font-size: 13px; font-weight: 600; color: #555; margin-bottom: 6px; }
+.form-sub { font-size: 11px; color: #aaa; font-weight: 400; margin-left: 4px; }
+.form-input {
+  width: 100%; height: 40px; padding: 0 12px;
+  border: 1.5px solid #e0e0e0; border-radius: 8px;
+  font-size: 14px; color: #333; outline: none; transition: border-color 0.15s;
+}
+.form-input:focus { border-color: #667eea; }
+.form-select {
+  width: 100%; height: 40px; padding: 0 10px;
+  border: 1.5px solid #e0e0e0; border-radius: 8px;
+  font-size: 14px; color: #333; background: #fff; cursor: pointer; outline: none;
+}
+.form-select:focus { border-color: #667eea; }
+.form-hint { font-size: 11px; color: #aaa; margin-top: 4px; line-height: 1.5; }
+.form-hint a { color: #1677ff; text-decoration: none; }
+.form-hint a:hover { text-decoration: underline; }
+.modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+.modal-btn {
+  flex: 1; height: 40px; border-radius: 20px; border: none;
+  font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.15s;
+}
+.modal-btn-primary { background: #667eea; color: #fff; }
+.modal-btn-primary:hover { background: #5a6fd6; }
+.modal-btn-cancel { background: #f5f5f5; color: #666; }
+.modal-btn-cancel:hover { background: #e8e8e8; }
+
+.api-status { display: flex; align-items: center; gap: 4px; margin-top: 8px; }
+.api-dot { width: 8px; height: 8px; border-radius: 50%; }
+.api-dot-on { background: #52c41a; }
+.api-dot-off { background: #ff4d4f; }
+.api-status-text { font-size: 11px; color: #999; }
+
+/* 底部 */
 .footer-note {
   text-align: center; padding: 22px 24px 10px;
   font-size: 11px; color: #c0c0c0; line-height: 1.8;
 }
 .footer-note a { color: #1677ff; text-decoration: none; }
-.footer-note a:hover { text-decoration: underline; }
 
-/* ============================
-   选牌面板
-   ============================ */
+/* 选牌面板 */
 .picker-overlay {
   position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.45);
-  z-index: 100;
-  opacity: 0; pointer-events: none;
-  transition: opacity 0.25s;
+  background: rgba(0,0,0,0.45); z-index: 100;
+  opacity: 0; pointer-events: none; transition: opacity 0.25s;
 }
 .picker-overlay.show { opacity: 1; pointer-events: auto; }
-
 .picker-panel {
   position: fixed; left: 50%; bottom: 0;
   width: 100%; max-width: 480px;
-  transform: translate(-50%, 100%);
-  background: #fff;
-  border-radius: 18px 18px 0 0;
-  z-index: 101;
+  transform: translate(-50%, 100%); background: #fff;
+  border-radius: 18px 18px 0 0; z-index: 101;
   transition: transform 0.3s ease;
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 .picker-panel.show { transform: translate(-50%, 0); }
-
 .picker-head {
   display: flex; justify-content: space-between; align-items: center;
-  padding: 16px 20px 10px;
-  border-bottom: 1px solid #f0f0f0;
+  padding: 16px 20px 10px; border-bottom: 1px solid #f0f0f0;
 }
 .picker-title { font-size: 16px; font-weight: 600; color: #333; }
-.picker-close {
-  font-size: 22px; color: #999; cursor: pointer; padding: 4px 8px;
-  -webkit-tap-highlight-color: transparent;
-}
+.picker-close { font-size: 22px; color: #999; cursor: pointer; padding: 4px 8px; }
 .picker-close:hover { color: #333; }
-
 .picker-body { padding: 14px 12px 20px; }
-.picker-row {
-  display: flex; align-items: center; margin-bottom: 8px;
-}
+.picker-row { display: flex; align-items: center; margin-bottom: 8px; }
 .picker-row:last-child { margin-bottom: 0; }
 .picker-suit-icon {
-  width: 28px; font-size: 20px;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
+  width: 28px; font-size: 20px; display: flex; align-items: center;
+  justify-content: center; flex-shrink: 0;
 }
-.suit-red { color: #d63031; }
-.suit-black { color: #2d3436; }
-
+.suit-red { color: #d63031; } .suit-black { color: #2d3436; }
 .picker-cards { display: flex; flex: 1; gap: 3px; }
 .picker-card {
-  flex: 1; height: 34px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 13px; font-weight: 600;
-  border-radius: 6px; background: #f8f9fa;
-  cursor: pointer; user-select: none;
-  -webkit-tap-highlight-color: transparent;
-  transition: transform 0.1s;
+  flex: 1; height: 34px; display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 600; border-radius: 6px; background: #f8f9fa;
+  cursor: pointer; user-select: none; transition: transform 0.1s;
 }
 .picker-card:hover { background: #e8eaed; }
 .picker-card:active { transform: scale(0.92); }
-.picker-red { color: #d63031; }
-.picker-black { color: #2d3436; }
-.picker-card.used {
-  background: #e8e8e8 !important;
-  color: #ccc !important;
-  text-decoration: line-through;
-  cursor: default;
-}
+.picker-red { color: #d63031; } .picker-black { color: #2d3436; }
+.picker-card.used { background: #e8e8e8!important; color: #ccc!important; text-decoration: line-through; cursor: default; }
 
-/* ============================
-   响应式
-   ============================ */
-@media (min-width: 481px) {
-  .header { border-radius: 0 0 18px 18px; }
-}
-@media (max-width: 360px) {
+@media (min-width:481px) { .header { border-radius: 0 0 18px 18px; } }
+@media (max-width:360px) {
   .card-slot-lg { width: 60px; height: 86px; }
   .card-slot-md { width: 48px; height: 68px; }
-  .card-rank { font-size: 20px; }
-  .card-suit { font-size: 16px; }
-  .card-slot-md .card-rank { font-size: 16px; }
-  .card-slot-md .card-suit { font-size: 13px; }
+  .card-rank { font-size: 20px; } .card-suit { font-size: 16px; }
+  .card-slot-md .card-rank { font-size: 16px; } .card-slot-md .card-suit { font-size: 13px; }
 }
 </style>
 </head>
 <body>
 
 <div class="app" id="app">
-  <!-- 顶部 -->
   <div class="header">
     <div class="header-title">德州扑克胜率计算器</div>
-    <div class="header-sub">Monte Carlo 模拟 · 开源免费</div>
+    <div class="header-sub">Monte Carlo 模拟 · AI 智能顾问</div>
+    <div class="header-gear" id="btnSettings" title="AI 设置">⚙️</div>
   </div>
 
-  <!-- 手牌 -->
   <div class="section">
     <div class="section-head">
       <span class="section-title">你的手牌</span>
@@ -405,7 +329,6 @@ body {
     <div class="cards-row" id="holeRow"></div>
   </div>
 
-  <!-- 公共牌 -->
   <div class="section">
     <div class="section-head">
       <span class="section-title">公共牌</span>
@@ -419,14 +342,12 @@ body {
     </div>
   </div>
 
-  <!-- 当前牌型 -->
   <div class="hand-type-bar hidden" id="handTypeBar">
     <span>🃏</span>&nbsp;
     <span class="hand-type-label">当前最佳牌型：</span>
     <span class="hand-type-value" id="handTypeValue"></span>
   </div>
 
-  <!-- 对手数量 -->
   <div class="section opponent-section">
     <span class="section-title">对手数量</span>
     <div class="stepper">
@@ -436,7 +357,6 @@ body {
     </div>
   </div>
 
-  <!-- 按钮 -->
   <div class="actions">
     <button class="btn-calc" id="btnCalc">计算胜率</button>
     <button class="btn-reset" id="btnReset">重置</button>
@@ -446,7 +366,6 @@ body {
     <span class="sim-tap">点击切换</span>
   </div>
 
-  <!-- 结果 -->
   <div class="result-panel hidden" id="resultPanel">
     <div class="equity-block">
       <div class="equity-ring" id="equityRing">
@@ -475,10 +394,31 @@ body {
     </div>
   </div>
 
-  <!-- 底部 -->
+  <!-- AI 顾问面板 -->
+  <div class="ai-panel" id="aiPanel">
+    <div class="ai-header">
+      <div class="ai-header-left">
+        <span class="ai-icon">🤖</span>
+        <span class="ai-title">AI 顾问</span>
+        <span class="ai-model-tag" id="aiModelTag">未配置</span>
+      </div>
+      <button class="btn-ai" id="btnAi">获取建议</button>
+    </div>
+    <div class="ai-body" id="aiBody">
+      <div class="ai-placeholder" id="aiPlaceholder">
+        选好手牌后点击「获取建议」，AI 将分析局面并推荐策略<br>
+        <span style="font-size:11px;color:#ccc">点击右上角 ⚙️ 配置 API Key（免费）</span>
+      </div>
+      <div class="ai-content" id="aiContent" style="display:none"></div>
+    </div>
+    <div class="ai-footer">
+      <span class="ai-cost" id="aiCost"></span>
+    </div>
+  </div>
+
   <div class="footer-note">
-    基于 Monte Carlo 随机模拟算法<br>
-    对手手牌随机发放，结果为统计概率<br>
+    基于 Monte Carlo 随机模拟 + AI 大模型分析<br>
+    对手手牌随机发放，AI 建议仅供参考<br>
     <a href="https://github.com" target="_blank" rel="noopener">GitHub 开源</a> · MIT License
   </div>
 </div>
@@ -493,374 +433,490 @@ body {
   <div class="picker-body" id="pickerBody"></div>
 </div>
 
+<!-- 设置模态框 -->
+<div class="modal-overlay" id="settingsOverlay">
+  <div class="modal">
+    <div class="modal-title">⚙️ AI 模型设置</div>
+
+    <div class="form-group">
+      <label class="form-label">预设服务商 <span class="form-sub">选择后自动填充</span></label>
+      <select class="form-select" id="presetSelect">
+        <option value="">自定义</option>
+        <option value="siliconflow">硅基流动 · Qwen（推荐·完全免费）</option>
+        <option value="siliconflow_ds">硅基流动 · Qwen2.5-72B（免费·高性能）</option>
+        <option value="deepseek">DeepSeek 官方（注册送500万token）</option>
+        <option value="openrouter">OpenRouter（部分模型免费）</option>
+        <option value="openai">OpenAI</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">API 地址</label>
+      <input class="form-input" id="inputEndpoint" placeholder="https://api.siliconflow.cn/v1/chat/completions">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">API Key</label>
+      <input class="form-input" id="inputApiKey" type="password" placeholder="sk-...">
+      <div class="form-hint" id="apiHint">
+        推荐 <a href="https://cloud.siliconflow.cn" target="_blank" rel="noopener">硅基流动</a>
+        注册即送免费额度，Qwen 系列模型完全免费
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">模型名称</label>
+      <input class="form-input" id="inputModel" placeholder="Qwen/Qwen2.5-7B-Instruct">
+    </div>
+
+    <div class="api-status" id="apiStatus">
+      <span class="api-dot api-dot-off" id="apiDot"></span>
+      <span class="api-status-text" id="apiStatusText">未配置</span>
+    </div>
+
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-cancel" id="btnSettingsCancel">取消</button>
+      <button class="modal-btn modal-btn-primary" id="btnSettingsSave">保存</button>
+    </div>
+  </div>
+</div>
+
 <script>
-/* ======================================================================
-   德州扑克胜率计算引擎
-   ====================================================================== */
 (function () {
   'use strict';
 
-  // --------------- 牌编码 ---------------
-  var SUITS = ['\u2660', '\u2665', '\u2666', '\u2663'];      // ♠♥♦♣
+  /* ==================== 扑克引擎 ==================== */
+  var SUITS = ['\u2660','\u2665','\u2666','\u2663'];
   var RANKS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
   var HAND_NAMES = ['高牌','一对','两对','三条','顺子','同花','葫芦','四条','同花顺'];
-
-  // 15 的各次幂
-  var P5=759375, P4=50625, P3=3375, P2=225, P1=15;
-
-  // C(7,5)=21 种组合
-  var C75 = [
-    [0,1,2,3,4],[0,1,2,3,5],[0,1,2,3,6],[0,1,2,4,5],[0,1,2,4,6],
-    [0,1,2,5,6],[0,1,3,4,5],[0,1,3,4,6],[0,1,3,5,6],[0,1,4,5,6],
-    [0,2,3,4,5],[0,2,3,4,6],[0,2,3,5,6],[0,2,4,5,6],[0,3,4,5,6],
-    [1,2,3,4,5],[1,2,3,4,6],[1,2,3,5,6],[1,2,4,5,6],[1,3,4,5,6],
-    [2,3,4,5,6]
-  ];
+  var P5=759375,P4=50625,P3=3375,P2=225,P1=15;
+  var C75=[[0,1,2,3,4],[0,1,2,3,5],[0,1,2,3,6],[0,1,2,4,5],[0,1,2,4,6],[0,1,2,5,6],[0,1,3,4,5],[0,1,3,4,6],[0,1,3,5,6],[0,1,4,5,6],[0,2,3,4,5],[0,2,3,4,6],[0,2,3,5,6],[0,2,4,5,6],[0,3,4,5,6],[1,2,3,4,5],[1,2,3,4,6],[1,2,3,5,6],[1,2,4,5,6],[1,3,4,5,6],[2,3,4,5,6]];
 
   function hs(t,a,b,c,d,e){return t*P5+(a||0)*P4+(b||0)*P3+(c||0)*P2+(d||0)*P1+(e||0);}
 
-  function eval5(cards) {
-    var ranks = [
-      (cards[0]>>2)+2, (cards[1]>>2)+2, (cards[2]>>2)+2,
-      (cards[3]>>2)+2, (cards[4]>>2)+2
-    ];
+  function eval5(cards){
+    var ranks=[(cards[0]>>2)+2,(cards[1]>>2)+2,(cards[2]>>2)+2,(cards[3]>>2)+2,(cards[4]>>2)+2];
     ranks.sort(function(a,b){return b-a;});
-
-    var flush = (cards[0]&3)===(cards[1]&3)&&(cards[1]&3)===(cards[2]&3)&&
-                (cards[2]&3)===(cards[3]&3)&&(cards[3]&3)===(cards[4]&3);
-
-    var straight=false, sHigh=0;
-    var allDiff=ranks[0]!==ranks[1]&&ranks[1]!==ranks[2]&&
-                ranks[2]!==ranks[3]&&ranks[3]!==ranks[4];
-    if(allDiff){
-      if(ranks[0]-ranks[4]===4){straight=true;sHigh=ranks[0];}
-      if(ranks[0]===14&&ranks[1]===5&&ranks[2]===4&&ranks[3]===3&&ranks[4]===2){straight=true;sHigh=5;}
-    }
-
-    var cnt={};
-    for(var i=0;i<5;i++) cnt[ranks[i]]=(cnt[ranks[i]]||0)+1;
-    var g=[];
-    for(var k in cnt) g.push([cnt[k],+k]);
-    g.sort(function(a,b){return b[0]-a[0]||(b[1]-a[1]);});
-
-    if(flush&&straight) return hs(8,sHigh);
-    if(g[0][0]===4) return hs(7,g[0][1],g[1][1]);
-    if(g[0][0]===3&&g.length===2) return hs(6,g[0][1],g[1][1]);
-    if(flush) return hs(5,ranks[0],ranks[1],ranks[2],ranks[3],ranks[4]);
-    if(straight) return hs(4,sHigh);
-    if(g[0][0]===3) return hs(3,g[0][1],g[1][1],g[2][1]);
-    if(g[0][0]===2&&g[1][0]===2) return hs(2,g[0][1],g[1][1],g[2][1]);
-    if(g[0][0]===2) return hs(1,g[0][1],g[1][1],g[2][1],g[3][1]);
+    var flush=(cards[0]&3)===(cards[1]&3)&&(cards[1]&3)===(cards[2]&3)&&(cards[2]&3)===(cards[3]&3)&&(cards[3]&3)===(cards[4]&3);
+    var straight=false,sHigh=0;
+    var ad=ranks[0]!==ranks[1]&&ranks[1]!==ranks[2]&&ranks[2]!==ranks[3]&&ranks[3]!==ranks[4];
+    if(ad){if(ranks[0]-ranks[4]===4){straight=true;sHigh=ranks[0];}if(ranks[0]===14&&ranks[1]===5&&ranks[2]===4&&ranks[3]===3&&ranks[4]===2){straight=true;sHigh=5;}}
+    var cnt={};for(var i=0;i<5;i++)cnt[ranks[i]]=(cnt[ranks[i]]||0)+1;
+    var g=[];for(var k in cnt)g.push([cnt[k],+k]);g.sort(function(a,b){return b[0]-a[0]||(b[1]-a[1]);});
+    if(flush&&straight)return hs(8,sHigh);if(g[0][0]===4)return hs(7,g[0][1],g[1][1]);
+    if(g[0][0]===3&&g.length===2)return hs(6,g[0][1],g[1][1]);
+    if(flush)return hs(5,ranks[0],ranks[1],ranks[2],ranks[3],ranks[4]);
+    if(straight)return hs(4,sHigh);if(g[0][0]===3)return hs(3,g[0][1],g[1][1],g[2][1]);
+    if(g[0][0]===2&&g[1][0]===2)return hs(2,g[0][1],g[1][1],g[2][1]);
+    if(g[0][0]===2)return hs(1,g[0][1],g[1][1],g[2][1],g[3][1]);
     return hs(0,ranks[0],ranks[1],ranks[2],ranks[3],ranks[4]);
   }
 
-  function best7(c7) {
-    var best=-1, h=[0,0,0,0,0];
-    for(var i=0;i<21;i++){
-      var cb=C75[i];
-      h[0]=c7[cb[0]];h[1]=c7[cb[1]];h[2]=c7[cb[2]];h[3]=c7[cb[3]];h[4]=c7[cb[4]];
-      var s=eval5(h);
-      if(s>best)best=s;
-    }
-    return best;
-  }
+  function best7(c7){var best=-1,h=[0,0,0,0,0];for(var i=0;i<21;i++){var cb=C75[i];h[0]=c7[cb[0]];h[1]=c7[cb[1]];h[2]=c7[cb[2]];h[3]=c7[cb[3]];h[4]=c7[cb[4]];var s=eval5(h);if(s>best)best=s;}return best;}
 
-  function bestN(cards) {
-    var n=cards.length;
-    if(n<5)return -1;
-    if(n===5)return eval5(cards);
-    if(n===7)return best7(cards);
-    var best=-1, h=[0,0,0,0,0];
-    for(var a=0;a<n-4;a++)
-      for(var b=a+1;b<n-3;b++)
-        for(var c=b+1;c<n-2;c++)
-          for(var d=c+1;d<n-1;d++)
-            for(var e=d+1;e<n;e++){
-              h[0]=cards[a];h[1]=cards[b];h[2]=cards[c];h[3]=cards[d];h[4]=cards[e];
-              var s=eval5(h);if(s>best)best=s;
-            }
-    return best;
-  }
+  function bestN(cards){var n=cards.length;if(n<5)return -1;if(n===5)return eval5(cards);if(n===7)return best7(cards);var best=-1,h=[0,0,0,0,0];for(var a=0;a<n-4;a++)for(var b=a+1;b<n-3;b++)for(var c=b+1;c<n-2;c++)for(var d=c+1;d<n-1;d++)for(var e=d+1;e<n;e++){h[0]=cards[a];h[1]=cards[b];h[2]=cards[c];h[3]=cards[d];h[4]=cards[e];var s=eval5(h);if(s>best)best=s;}return best;}
 
-  function handTypeName(score) {
-    if(score<0)return '';
-    var t=Math.floor(score/P5);
-    if(t===8){var v=Math.floor((score-t*P5)/P4);return v===14?'皇家同花顺':'同花顺';}
-    return HAND_NAMES[t]||'';
-  }
+  function handTypeName(score){if(score<0)return '';var t=Math.floor(score/P5);if(t===8){var v=Math.floor((score-t*P5)/P4);return v===14?'皇家同花顺':'同花顺';}return HAND_NAMES[t]||'';}
 
-  function monteCarlo(hole, community, opp, sims) {
-    var known={};
-    for(var i=0;i<hole.length;i++) known[hole[i]]=1;
-    for(var i=0;i<community.length;i++) known[community[i]]=1;
-    var deck=[];
-    for(var i=0;i<52;i++) if(!known[i]) deck.push(i);
-    var dLen=deck.length, cNeed=5-community.length, total=cNeed+opp*2;
+  function monteCarlo(hole,community,opp,sims){
+    var known={};for(var i=0;i<hole.length;i++)known[hole[i]]=1;for(var i=0;i<community.length;i++)known[community[i]]=1;
+    var deck=[];for(var i=0;i<52;i++)if(!known[i])deck.push(i);
+    var dLen=deck.length,cNeed=5-community.length,total=cNeed+opp*2;
     var wins=0,ties=0,losses=0;
-    var my=[hole[0],hole[1],0,0,0,0,0], op=[0,0,0,0,0,0,0];
-    for(var i=0;i<community.length;i++) my[2+i]=community[i];
-
+    var my=[hole[0],hole[1],0,0,0,0,0],op=[0,0,0,0,0,0,0];
+    for(var i=0;i<community.length;i++)my[2+i]=community[i];
     for(var sim=0;sim<sims;sim++){
-      for(var i=0;i<total;i++){
-        var j=i+Math.floor(Math.random()*(dLen-i));
-        var tmp=deck[i];deck[i]=deck[j];deck[j]=tmp;
-      }
-      var idx=0;
-      for(var i=0;i<cNeed;i++) my[2+community.length+i]=deck[idx++];
-      var myS=best7(my);
-      var bestOpp=-1;
-      for(var o=0;o<opp;o++){
-        op[0]=deck[idx++];op[1]=deck[idx++];
-        op[2]=my[2];op[3]=my[3];op[4]=my[4];op[5]=my[5];op[6]=my[6];
-        var os=best7(op);if(os>bestOpp)bestOpp=os;
-      }
+      for(var i=0;i<total;i++){var j=i+Math.floor(Math.random()*(dLen-i));var tmp=deck[i];deck[i]=deck[j];deck[j]=tmp;}
+      var idx=0;for(var i=0;i<cNeed;i++)my[2+community.length+i]=deck[idx++];
+      var myS=best7(my);var bestOpp=-1;
+      for(var o=0;o<opp;o++){op[0]=deck[idx++];op[1]=deck[idx++];op[2]=my[2];op[3]=my[3];op[4]=my[4];op[5]=my[5];op[6]=my[6];var os=best7(op);if(os>bestOpp)bestOpp=os;}
       if(myS>bestOpp)wins++;else if(myS===bestOpp)ties++;else losses++;
     }
-
     var eq=(wins+ties*0.5)/sims*100;
+    return {wins:wins,ties:ties,losses:losses,total:sims,
+      winRate:(wins/sims*100).toFixed(1),tieRate:(ties/sims*100).toFixed(1),
+      lossRate:(losses/sims*100).toFixed(1),equity:eq.toFixed(1),
+      eqClass:eq>=55?'equity-good':(eq>=45?'equity-mid':'equity-bad')};
+  }
+
+  /* ==================== Outs 分析 ==================== */
+  function calcOuts(hole, community) {
+    if (community.length >= 5 || community.length < 3) return null;
+    var all = hole.concat(community);
+    var curScore = bestN(all);
+    var curType = Math.floor(curScore / P5);
+    var known = {};
+    for (var i = 0; i < all.length; i++) known[all[i]] = true;
+    var outs = [], improve = {};
+    for (var c = 0; c < 52; c++) {
+      if (known[c]) continue;
+      var test = all.concat([c]);
+      var ns = bestN(test);
+      var nt = Math.floor(ns / P5);
+      if (nt > curType) {
+        outs.push(c);
+        var name = HAND_NAMES[nt] || '未知';
+        improve[name] = (improve[name] || 0) + 1;
+      }
+    }
+    var remaining = 52 - all.length;
     return {
-      wins:wins, ties:ties, losses:losses, total:sims,
-      winRate:(wins/sims*100).toFixed(1),
-      tieRate:(ties/sims*100).toFixed(1),
-      lossRate:(losses/sims*100).toFixed(1),
-      equity:eq.toFixed(1),
-      eqClass:eq>=55?'equity-good':(eq>=45?'equity-mid':'equity-bad')
+      outsCards: outs,
+      outsCount: outs.length,
+      probability: (outs.length / remaining * 100).toFixed(1),
+      remaining: remaining,
+      currentType: HAND_NAMES[curType] || '未知',
+      improve: improve
     };
   }
 
-  // --------------- 应用状态 ---------------
+  function cardName(idx) { return SUITS[idx & 3] + RANKS[idx >> 2]; }
+
+  /* ==================== 应用状态 ==================== */
   var state = {
-    hole: [-1, -1],
-    community: [-1, -1, -1, -1, -1],
-    opp: 2,
-    used: {},
-    simCount: 10000,
-    simCounts: [5000, 10000, 20000, 50000],
-    simIdx: 1,
-    calculating: false,
-    pickerTarget: null  // {type:'hole'|'community', index:N}
+    hole: [-1,-1], community: [-1,-1,-1,-1,-1],
+    opp: 2, used: {},
+    simCount: 10000, simCounts: [5000,10000,20000,50000], simIdx: 1,
+    calculating: false, pickerTarget: null,
+    lastResult: null, aiLoading: false, aiAbort: null
   };
 
-  // --------------- DOM ---------------
-  var $ = function(id){return document.getElementById(id);};
-  var holeRow = $('holeRow');
-  var communityRow = $('communityRow');
-  var handTypeBar = $('handTypeBar');
-  var handTypeValue = $('handTypeValue');
-  var oppCountEl = $('oppCount');
-  var resultPanel = $('resultPanel');
-  var pickerOverlay = $('pickerOverlay');
-  var pickerPanel = $('pickerPanel');
-  var pickerBody = $('pickerBody');
-
-  // --------------- 渲染函数 ---------------
-  function cardHTML(idx, size) {
-    if (idx < 0) {
-      return '<span class="card-add' + (size === 'md' ? ' card-add-sm' : '') + '">+</span>';
+  /* ==================== API 配置 ==================== */
+  var PRESETS = {
+    siliconflow: {
+      endpoint: 'https://api.siliconflow.cn/v1/chat/completions',
+      model: 'Qwen/Qwen2.5-7B-Instruct',
+      hint: '推荐 <a href="https://cloud.siliconflow.cn" target="_blank" rel="noopener">硅基流动</a>，注册送免费额度，Qwen 系列完全免费'
+    },
+    siliconflow_ds: {
+      endpoint: 'https://api.siliconflow.cn/v1/chat/completions',
+      model: 'Qwen/Qwen2.5-72B-Instruct',
+      hint: '通过 <a href="https://cloud.siliconflow.cn" target="_blank" rel="noopener">硅基流动</a> 免费使用 Qwen2.5-72B（性能强劲，永久免费不消耗额度）'
+    },
+    deepseek: {
+      endpoint: 'https://api.deepseek.com/v1/chat/completions',
+      model: 'deepseek-chat',
+      hint: '<a href="https://platform.deepseek.com" target="_blank" rel="noopener">DeepSeek</a> 官方API，注册送500万token，用完后价格极低'
+    },
+    openrouter: {
+      endpoint: 'https://openrouter.ai/api/v1/chat/completions',
+      model: 'qwen/qwen-2.5-7b-instruct:free',
+      hint: '<a href="https://openrouter.ai" target="_blank" rel="noopener">OpenRouter</a> 提供多个免费模型'
+    },
+    openai: {
+      endpoint: 'https://api.openai.com/v1/chat/completions',
+      model: 'gpt-4o-mini',
+      hint: '<a href="https://platform.openai.com" target="_blank" rel="noopener">OpenAI</a> 官方API'
     }
-    var s = idx & 3, r = idx >> 2;
-    var cls = (s === 1 || s === 2) ? 'c-red' : 'c-black';
-    return '<span class="card-suit ' + cls + '">' + SUITS[s] + '</span>' +
-           '<span class="card-rank ' + cls + '">' + RANKS[r] + '</span>';
+  };
+
+  var apiConfig = loadConfig();
+
+  function loadConfig() {
+    try { var s = localStorage.getItem('poker_ai_config'); if (s) return JSON.parse(s); } catch(e){}
+    return { endpoint: '', apiKey: '', model: '', preset: '' };
+  }
+  function saveConfig(cfg) {
+    apiConfig = cfg;
+    try { localStorage.setItem('poker_ai_config', JSON.stringify(cfg)); } catch(e){}
+    updateApiStatus();
+  }
+  function isApiReady() { return !!(apiConfig.endpoint && apiConfig.apiKey && apiConfig.model); }
+
+  /* ==================== DOM ==================== */
+  var $=function(id){return document.getElementById(id);};
+  var holeRow=$('holeRow'), communityRow=$('communityRow');
+  var handTypeBar=$('handTypeBar'), handTypeValue=$('handTypeValue');
+  var oppCountEl=$('oppCount'), resultPanel=$('resultPanel');
+  var pickerOverlay=$('pickerOverlay'), pickerPanel=$('pickerPanel'), pickerBody=$('pickerBody');
+
+  /* ==================== 渲染 ==================== */
+  function cardHTML(idx,size){
+    if(idx<0)return '<span class="card-add'+(size==='md'?' card-add-sm':'')+'">+</span>';
+    var s=idx&3,r=idx>>2,cls=(s===1||s===2)?'c-red':'c-black';
+    return '<span class="card-suit '+cls+'">'+SUITS[s]+'</span><span class="card-rank '+cls+'">'+RANKS[r]+'</span>';
+  }
+  function renderHole(){var h='';for(var i=0;i<2;i++){var f=state.hole[i]>=0?'filled':'empty';h+='<div class="card-slot card-slot-lg '+f+'" data-idx="'+i+'">'+cardHTML(state.hole[i],'lg')+'</div>';}holeRow.innerHTML=h;}
+  function renderCommunity(){var h='';for(var i=0;i<5;i++){var f=state.community[i]>=0?'filled':'empty',g=i===3?' slot-gap':'';h+='<div class="card-slot card-slot-md '+f+g+'" data-idx="'+i+'">'+cardHTML(state.community[i],'md')+'</div>';}communityRow.innerHTML=h;}
+
+  function renderHandType(){
+    var h=[],c=[];
+    for(var i=0;i<2;i++)if(state.hole[i]>=0)h.push(state.hole[i]);
+    for(var i=0;i<5;i++)if(state.community[i]>=0)c.push(state.community[i]);
+    if(h.length===2&&c.length>=3){var score=bestN(h.concat(c));handTypeValue.textContent=handTypeName(score);handTypeBar.classList.remove('hidden');}
+    else handTypeBar.classList.add('hidden');
   }
 
-  function renderHole() {
-    var html = '';
-    for (var i = 0; i < 2; i++) {
-      var filled = state.hole[i] >= 0 ? 'filled' : 'empty';
-      html += '<div class="card-slot card-slot-lg ' + filled + '" data-type="hole" data-idx="' + i + '">' +
-              cardHTML(state.hole[i], 'lg') + '</div>';
-    }
-    holeRow.innerHTML = html;
-  }
-
-  function renderCommunity() {
-    var html = '';
-    for (var i = 0; i < 5; i++) {
-      var filled = state.community[i] >= 0 ? 'filled' : 'empty';
-      var gap = i === 3 ? ' slot-gap' : '';
-      html += '<div class="card-slot card-slot-md ' + filled + gap + '" data-type="community" data-idx="' + i + '">' +
-              cardHTML(state.community[i], 'md') + '</div>';
-    }
-    communityRow.innerHTML = html;
-  }
-
-  function renderHandType() {
-    var h = [], c = [];
-    for (var i = 0; i < 2; i++) if (state.hole[i] >= 0) h.push(state.hole[i]);
-    for (var i = 0; i < 5; i++) if (state.community[i] >= 0) c.push(state.community[i]);
-    if (h.length === 2 && c.length >= 3) {
-      var score = bestN(h.concat(c));
-      handTypeValue.textContent = handTypeName(score);
-      handTypeBar.classList.remove('hidden');
-    } else {
-      handTypeBar.classList.add('hidden');
-    }
-  }
-
-  function renderResult(r) {
-    $('equityRing').className = 'equity-ring ' + r.eqClass;
-    $('equityNum').textContent = r.equity;
-    $('barWin').style.width = r.winRate + '%';
-    $('barTie').style.width = r.tieRate + '%';
-    $('barLoss').style.width = r.lossRate + '%';
-    $('valWin').textContent = r.winRate + '%';
-    $('valTie').textContent = r.tieRate + '%';
-    $('valLoss').textContent = r.lossRate + '%';
-    $('resultMeta').textContent = '模拟 ' + r.total + ' 次 · 耗时 ' + r.duration + 's';
+  function renderResult(r){
+    $('equityRing').className='equity-ring '+r.eqClass;$('equityNum').textContent=r.equity;
+    $('barWin').style.width=r.winRate+'%';$('barTie').style.width=r.tieRate+'%';$('barLoss').style.width=r.lossRate+'%';
+    $('valWin').textContent=r.winRate+'%';$('valTie').textContent=r.tieRate+'%';$('valLoss').textContent=r.lossRate+'%';
+    $('resultMeta').textContent='模拟 '+r.total+' 次 · 耗时 '+r.duration+'s';
     resultPanel.classList.remove('hidden');
   }
-
-  function hideResult() {
-    resultPanel.classList.add('hidden');
+  function hideResult(){resultPanel.classList.add('hidden');state.lastResult=null;}
+  function renderSimLabel(){var c=state.simCount;$('simLabel').textContent='模拟精度：'+(c>=10000?(c/10000)+'万次':c+'次');}
+  function renderOpp(){
+    oppCountEl.textContent=state.opp;
+    $('btnDecOpp').className='stepper-btn'+(state.opp<=1?' disabled':'');
+    $('btnIncOpp').className='stepper-btn'+(state.opp>=9?' disabled':'');
+  }
+  function updateApiStatus(){
+    var dot=$('apiDot'),text=$('apiStatusText'),tag=$('aiModelTag');
+    if(isApiReady()){dot.className='api-dot api-dot-on';var m=apiConfig.model.split('/').pop();text.textContent='已配置 · '+m;tag.textContent=m;}
+    else {dot.className='api-dot api-dot-off';text.textContent='未配置';tag.textContent='未配置';}
   }
 
-  function renderSimLabel() {
-    var c = state.simCount;
-    $('simLabel').textContent = '模拟精度：' + (c >= 10000 ? (c / 10000) + '万次' : c + '次');
-  }
+  /* ==================== 选牌面板 ==================== */
+  function buildPicker(){var h='';for(var s=0;s<4;s++){var red=(s===1||s===2);h+='<div class="picker-row"><div class="picker-suit-icon '+(red?'suit-red':'suit-black')+'">'+SUITS[s]+'</div><div class="picker-cards">';for(var r=0;r<13;r++){var idx=r*4+s;var u=state.used[idx]?' used':'';h+='<div class="picker-card '+(red?'picker-red':'picker-black')+u+'" data-card="'+idx+'">'+RANKS[r]+'</div>';}h+='</div></div>';}pickerBody.innerHTML=h;}
+  function showPicker(type,idx){state.pickerTarget={type:type,index:idx};buildPicker();pickerOverlay.classList.add('show');pickerPanel.classList.add('show');}
+  function closePicker(){pickerOverlay.classList.remove('show');pickerPanel.classList.remove('show');state.pickerTarget=null;}
 
-  function renderOpp() {
-    oppCountEl.textContent = state.opp;
-    $('btnDecOpp').className = 'stepper-btn' + (state.opp <= 1 ? ' disabled' : '');
-    $('btnIncOpp').className = 'stepper-btn' + (state.opp >= 9 ? ' disabled' : '');
-  }
+  /* ==================== AI 顾问 ==================== */
+  var SYSTEM_PROMPT = '你是一位经验丰富的职业德州扑克策略顾问。用户会给你当前牌局的完整信息（手牌、公共牌、对手数、Monte Carlo 模拟胜率、Outs 分析）。\n\n请你给出专业分析：\n\n1. **手牌评估**：评价起手牌质量和在当前位置的强度\n2. **牌面分析**：如果有公共牌，分析牌面纹理（干燥/湿润），对手可能的范围\n3. **听牌与Outs**：结合 Outs 数据分析听牌可能性，计算成牌概率\n4. **行动建议**：用 【建议：弃牌】或【建议：跟注】或【建议：加注】格式给出明确建议，并说明理由\n5. **关键牌提示**：下一张公共牌需要关注哪些牌（有利/危险）\n\n要求：\n- 简洁专业，总共不超过200字\n- 中文回答\n- 概率判断客观，不过度乐观也不过度悲观\n- 胜率<30%且无好听牌时果断建议弃牌\n- 胜率>60%时考虑加注建议\n- 结合对手数量评估多人底池的风险';
 
-  // --------------- 选牌面板 ---------------
-  function buildPicker() {
-    var html = '';
-    for (var s = 0; s < 4; s++) {
-      var red = (s === 1 || s === 2);
-      html += '<div class="picker-row"><div class="picker-suit-icon ' + (red ? 'suit-red' : 'suit-black') + '">' +
-              SUITS[s] + '</div><div class="picker-cards">';
-      for (var r = 0; r < 13; r++) {
-        var idx = r * 4 + s;
-        var usedCls = state.used[idx] ? ' used' : '';
-        html += '<div class="picker-card ' + (red ? 'picker-red' : 'picker-black') + usedCls +
-                '" data-card="' + idx + '">' + RANKS[r] + '</div>';
+  function buildGameDesc() {
+    var h = [], c = [];
+    for (var i = 0; i < 2; i++) if (state.hole[i] >= 0) h.push(cardName(state.hole[i]));
+    for (var i = 0; i < 5; i++) if (state.community[i] >= 0) c.push(cardName(state.community[i]));
+    var stage = '翻牌前(Preflop)';
+    if (c.length === 3) stage = '翻牌(Flop)';
+    else if (c.length === 4) stage = '转牌(Turn)';
+    else if (c.length === 5) stage = '河牌(River)';
+
+    var desc = '【游戏阶段】' + stage + '\n';
+    desc += '【我的手牌】' + (h.length === 2 ? h.join(' ') : '未选完') + '\n';
+    desc += '【公共牌】' + (c.length > 0 ? c.join(' ') : '无') + '\n';
+    desc += '【对手数量】' + state.opp + ' 人\n';
+
+    if (state.lastResult) {
+      desc += '【Monte Carlo 模拟（' + state.lastResult.total + '次）】\n';
+      desc += '  综合胜率(Equity): ' + state.lastResult.equity + '%\n';
+      desc += '  胜: ' + state.lastResult.winRate + '% | 平: ' + state.lastResult.tieRate + '% | 负: ' + state.lastResult.lossRate + '%\n';
+    }
+
+    if (h.length === 2) {
+      var holeIdx = [state.hole[0], state.hole[1]];
+      var commIdx = [];
+      for (var i = 0; i < 5; i++) if (state.community[i] >= 0) commIdx.push(state.community[i]);
+      if (commIdx.length >= 3) {
+        var all = holeIdx.concat(commIdx);
+        var score = bestN(all);
+        desc += '【当前最佳牌型】' + handTypeName(score) + '\n';
+        var outsInfo = calcOuts(holeIdx, commIdx);
+        if (outsInfo && outsInfo.outsCount > 0) {
+          desc += '【Outs】' + outsInfo.outsCount + ' 张（概率 ' + outsInfo.probability + '% 在下一张牌提升）\n';
+          var names = [];
+          for (var i = 0; i < outsInfo.outsCards.length && i < 12; i++) names.push(cardName(outsInfo.outsCards[i]));
+          desc += '  提升牌: ' + names.join(' ');
+          if (outsInfo.outsCount > 12) desc += ' 等' + outsInfo.outsCount + '张';
+          desc += '\n';
+          var impKeys = Object.keys(outsInfo.improve);
+          if (impKeys.length > 0) {
+            var impDesc = [];
+            for (var i = 0; i < impKeys.length; i++) impDesc.push(impKeys[i] + '×' + outsInfo.improve[impKeys[i]]);
+            desc += '  可提升至: ' + impDesc.join(', ') + '\n';
+          }
+        } else if (outsInfo) {
+          desc += '【Outs】0 张（当前牌型已无法通过下一张牌提升类型）\n';
+        }
       }
-      html += '</div></div>';
     }
-    pickerBody.innerHTML = html;
+    return desc;
   }
 
-  function showPicker(type, idx) {
-    state.pickerTarget = {type: type, index: idx};
-    buildPicker();
-    pickerOverlay.classList.add('show');
-    pickerPanel.classList.add('show');
+  function requestAI() {
+    if (state.aiLoading) return;
+    if (!isApiReady()) { $('settingsOverlay').classList.add('show'); return; }
+    var h = [];
+    for (var i = 0; i < 2; i++) if (state.hole[i] >= 0) h.push(state.hole[i]);
+    if (h.length < 2) { alert('请先选择两张手牌'); return; }
+
+    state.aiLoading = true;
+    var btn = $('btnAi');
+    btn.textContent = '分析中…'; btn.classList.add('loading');
+
+    var aiContent = $('aiContent'), aiPlaceholder = $('aiPlaceholder');
+    aiPlaceholder.style.display = 'none';
+    aiContent.style.display = 'block';
+    aiContent.innerHTML = '<span class="ai-cursor"></span>';
+    $('aiCost').textContent = '';
+
+    var gameDesc = buildGameDesc();
+    var controller = new AbortController();
+    state.aiAbort = controller;
+    var t0 = performance.now();
+
+    fetch(apiConfig.endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiConfig.apiKey },
+      body: JSON.stringify({
+        model: apiConfig.model,
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user', content: gameDesc }
+        ],
+        stream: true,
+        temperature: 0.7,
+        max_tokens: 800
+      }),
+      signal: controller.signal
+    })
+    .then(function(resp) {
+      if (!resp.ok) return resp.text().then(function(t) { throw new Error('API 错误 (' + resp.status + '): ' + t.substring(0, 200)); });
+      var reader = resp.body.getReader();
+      var decoder = new TextDecoder();
+      var fullText = '', buffer = '';
+
+      function pump() {
+        return reader.read().then(function(result) {
+          if (result.done) { finishAI(fullText, t0); return; }
+          buffer += decoder.decode(result.value, { stream: true });
+          var lines = buffer.split('\n');
+          buffer = lines.pop();
+          for (var i = 0; i < lines.length; i++) {
+            var line = lines[i].trim();
+            if (!line || line === 'data: [DONE]') continue;
+            if (line.indexOf('data: ') === 0) {
+              try {
+                var json = JSON.parse(line.substring(6));
+                var delta = json.choices && json.choices[0] && json.choices[0].delta;
+                if (delta && delta.content) {
+                  fullText += delta.content;
+                  aiContent.innerHTML = fmtAI(fullText) + '<span class="ai-cursor"></span>';
+                }
+              } catch(e){}
+            }
+          }
+          return pump();
+        });
+      }
+      return pump();
+    })
+    .catch(function(err) {
+      if (err.name === 'AbortError') return;
+      aiContent.innerHTML = '<span class="ai-error">\u274c ' + esc(err.message) + '</span>';
+    })
+    .finally(function() {
+      state.aiLoading = false; state.aiAbort = null;
+      btn.textContent = '获取建议'; btn.classList.remove('loading');
+    });
   }
 
-  function closePicker() {
-    pickerOverlay.classList.remove('show');
-    pickerPanel.classList.remove('show');
-    state.pickerTarget = null;
+  function finishAI(text, t0) {
+    var dur = ((performance.now() - t0) / 1000).toFixed(1);
+    $('aiContent').innerHTML = fmtAI(text);
+    $('aiCost').textContent = '耗时 ' + dur + 's';
   }
 
-  // --------------- 事件绑定 ---------------
+  function fmtAI(text) {
+    var s = esc(text);
+    s = s.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    s = s.replace(/【建议[：:]\s*(弃牌|Fold)\s*】/gi, '<span class="ai-tag-fold">建议：弃牌 Fold</span>');
+    s = s.replace(/【建议[：:]\s*(跟注|Call)\s*】/gi, '<span class="ai-tag-call">建议：跟注 Call</span>');
+    s = s.replace(/【建议[：:]\s*(加注|Raise|All[\s-]?in)\s*】/gi, '<span class="ai-tag-raise">建议：加注 Raise</span>');
+    s = s.replace(/【建议[：:]\s*(.*?)\s*】/g, '<strong>【建议：$1】</strong>');
+    return s;
+  }
 
-  // 手牌和公共牌点击 (事件委托)
-  holeRow.addEventListener('click', function (e) {
-    var slot = e.target.closest('.card-slot');
-    if (!slot) return;
-    var idx = +slot.dataset.idx;
-    if (state.hole[idx] >= 0) {
-      delete state.used[state.hole[idx]];
-      state.hole[idx] = -1;
-      renderHole(); renderHandType(); hideResult();
-    } else {
-      showPicker('hole', idx);
+  function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  function resetAI() {
+    if (state.aiAbort) { state.aiAbort.abort(); state.aiAbort = null; }
+    state.aiLoading = false;
+    $('btnAi').textContent = '获取建议'; $('btnAi').classList.remove('loading');
+    $('aiPlaceholder').style.display = '';
+    $('aiContent').style.display = 'none'; $('aiContent').innerHTML = '';
+    $('aiCost').textContent = '';
+  }
+
+  /* ==================== 设置面板 ==================== */
+  function openSettings() {
+    $('presetSelect').value = apiConfig.preset || '';
+    $('inputEndpoint').value = apiConfig.endpoint || '';
+    $('inputApiKey').value = apiConfig.apiKey || '';
+    $('inputModel').value = apiConfig.model || '';
+    $('settingsOverlay').classList.add('show');
+  }
+  function closeSettings() { $('settingsOverlay').classList.remove('show'); }
+
+  $('presetSelect').addEventListener('change', function() {
+    var v = this.value;
+    if (PRESETS[v]) {
+      $('inputEndpoint').value = PRESETS[v].endpoint;
+      $('inputModel').value = PRESETS[v].model;
+      $('apiHint').innerHTML = PRESETS[v].hint;
     }
   });
+  $('btnSettingsSave').addEventListener('click', function() {
+    var cfg = {
+      endpoint: $('inputEndpoint').value.trim(),
+      apiKey: $('inputApiKey').value.trim(),
+      model: $('inputModel').value.trim(),
+      preset: $('presetSelect').value
+    };
+    if (!cfg.endpoint || !cfg.apiKey || !cfg.model) { alert('请填写完整的 API 地址、Key 和模型名称'); return; }
+    saveConfig(cfg); closeSettings();
+  });
+  $('btnSettingsCancel').addEventListener('click', closeSettings);
+  $('settingsOverlay').addEventListener('click', function(e) { if (e.target === this) closeSettings(); });
+  $('btnSettings').addEventListener('click', openSettings);
 
-  communityRow.addEventListener('click', function (e) {
-    var slot = e.target.closest('.card-slot');
-    if (!slot) return;
-    var idx = +slot.dataset.idx;
-    if (state.community[idx] >= 0) {
-      delete state.used[state.community[idx]];
-      state.community[idx] = -1;
-      renderCommunity(); renderHandType(); hideResult();
-    } else {
-      showPicker('community', idx);
-    }
+  /* ==================== 事件绑定 ==================== */
+  holeRow.addEventListener('click', function(e){
+    var slot=e.target.closest('.card-slot');if(!slot)return;var idx=+slot.dataset.idx;
+    if(state.hole[idx]>=0){delete state.used[state.hole[idx]];state.hole[idx]=-1;renderHole();renderHandType();hideResult();resetAI();}
+    else showPicker('hole',idx);
+  });
+  communityRow.addEventListener('click', function(e){
+    var slot=e.target.closest('.card-slot');if(!slot)return;var idx=+slot.dataset.idx;
+    if(state.community[idx]>=0){delete state.used[state.community[idx]];state.community[idx]=-1;renderCommunity();renderHandType();hideResult();resetAI();}
+    else showPicker('community',idx);
+  });
+  pickerBody.addEventListener('click', function(e){
+    var el=e.target.closest('.picker-card');if(!el||el.classList.contains('used'))return;
+    var card=+el.dataset.card;if(!state.pickerTarget)return;var t=state.pickerTarget;
+    if(t.type==='hole')state.hole[t.index]=card;else state.community[t.index]=card;
+    state.used[card]=true;closePicker();renderHole();renderCommunity();renderHandType();hideResult();resetAI();
+  });
+  pickerOverlay.addEventListener('click',closePicker);
+  $('pickerClose').addEventListener('click',closePicker);
+
+  $('btnDecOpp').addEventListener('click',function(){if(state.opp>1){state.opp--;renderOpp();hideResult();}});
+  $('btnIncOpp').addEventListener('click',function(){if(state.opp<9){state.opp++;renderOpp();hideResult();}});
+
+  $('btnCalc').addEventListener('click', function(){
+    if(state.calculating)return;
+    var hole=[];for(var i=0;i<2;i++)if(state.hole[i]>=0)hole.push(state.hole[i]);
+    if(hole.length<2){alert('请先选择两张手牌');return;}
+    var comm=[];for(var i=0;i<5;i++)if(state.community[i]>=0)comm.push(state.community[i]);
+    state.calculating=true;
+    var btn=$('btnCalc');btn.textContent='计算中...';btn.classList.add('loading');hideResult();
+    setTimeout(function(){
+      var t0=performance.now();
+      var r=monteCarlo(hole,comm,state.opp,state.simCount);
+      r.duration=((performance.now()-t0)/1000).toFixed(2);
+      state.lastResult=r;renderResult(r);
+      btn.textContent='计算胜率';btn.classList.remove('loading');state.calculating=false;
+      // 计算完成后自动触发 AI 分析
+      if(isApiReady()) requestAI();
+    },30);
   });
 
-  // 选牌
-  pickerBody.addEventListener('click', function (e) {
-    var el = e.target.closest('.picker-card');
-    if (!el || el.classList.contains('used')) return;
-    var card = +el.dataset.card;
-    if (!state.pickerTarget) return;
-    var t = state.pickerTarget;
-    if (t.type === 'hole') state.hole[t.index] = card;
-    else state.community[t.index] = card;
-    state.used[card] = true;
-    closePicker();
-    renderHole(); renderCommunity(); renderHandType(); hideResult();
+  $('btnAi').addEventListener('click', requestAI);
+
+  $('btnReset').addEventListener('click',function(){
+    state.hole=[-1,-1];state.community=[-1,-1,-1,-1,-1];state.opp=2;state.used={};
+    renderHole();renderCommunity();renderOpp();renderHandType();hideResult();resetAI();
   });
 
-  pickerOverlay.addEventListener('click', closePicker);
-  $('pickerClose').addEventListener('click', closePicker);
-
-  // 对手数量
-  $('btnDecOpp').addEventListener('click', function () {
-    if (state.opp > 1) { state.opp--; renderOpp(); hideResult(); }
-  });
-  $('btnIncOpp').addEventListener('click', function () {
-    if (state.opp < 9) { state.opp++; renderOpp(); hideResult(); }
+  $('simSwitch').addEventListener('click',function(){
+    state.simIdx=(state.simIdx+1)%state.simCounts.length;
+    state.simCount=state.simCounts[state.simIdx];renderSimLabel();hideResult();
   });
 
-  // 计算
-  $('btnCalc').addEventListener('click', function () {
-    if (state.calculating) return;
-    var hole = [];
-    for (var i = 0; i < 2; i++) if (state.hole[i] >= 0) hole.push(state.hole[i]);
-    if (hole.length < 2) {
-      alert('请先选择两张手牌');
-      return;
-    }
-    var comm = [];
-    for (var i = 0; i < 5; i++) if (state.community[i] >= 0) comm.push(state.community[i]);
-
-    state.calculating = true;
-    var btn = $('btnCalc');
-    btn.textContent = '计算中...';
-    btn.classList.add('loading');
-    hideResult();
-
-    setTimeout(function () {
-      var t0 = performance.now();
-      var r = monteCarlo(hole, comm, state.opp, state.simCount);
-      r.duration = ((performance.now() - t0) / 1000).toFixed(2);
-      renderResult(r);
-      btn.textContent = '计算胜率';
-      btn.classList.remove('loading');
-      state.calculating = false;
-    }, 30);
-  });
-
-  // 重置
-  $('btnReset').addEventListener('click', function () {
-    state.hole = [-1, -1];
-    state.community = [-1, -1, -1, -1, -1];
-    state.opp = 2;
-    state.used = {};
-    renderHole(); renderCommunity(); renderOpp(); renderHandType(); hideResult();
-  });
-
-  // 模拟精度切换
-  $('simSwitch').addEventListener('click', function () {
-    state.simIdx = (state.simIdx + 1) % state.simCounts.length;
-    state.simCount = state.simCounts[state.simIdx];
-    renderSimLabel(); hideResult();
-  });
-
-  // --------------- 初始化渲染 ---------------
-  renderHole();
-  renderCommunity();
-  renderOpp();
-  renderSimLabel();
+  /* ==================== 初始化 ==================== */
+  renderHole(); renderCommunity(); renderOpp(); renderSimLabel(); updateApiStatus();
 
 })();
 </script>
